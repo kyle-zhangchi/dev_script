@@ -10,15 +10,15 @@ NNODES=4
 NPUS_PER_NODE=${NPUS_PER_NODE:-8}
 
 # Model Weights Paths
-MODEL_PATH=/mnt/share/z00804445/models/Qwen3-30B-A3B-MXFP8-DTS
+MODEL_PATH=/home/z00804445/models/Qwen3-30B-A3B-MXFP8
 MCORE_MODEL_PATH=Qwen/Qwen3-30B-A3B-Base-dist
 RAY_DATA_HOME=${RAY_DATA_HOME:-"${HOME}/verl"}
 CKPTS_DIR=${CKPTS_DIR:-"${RAY_DATA_HOME}/ckpts/${project_name}/${exp_name}"}
 cp $MODEL_PATH/config.json $JOB_LOG_DIR_CURR/.
 
 # File System Paths
-TRAIN_FILE=${TRAIN_FILE:-"/mnt/share/z00804445/dataset/gsm8k/qcs/train.parquet"}
-TEST_FILE=${TEST_FILE:-"/mnt/share/z00804445/dataset/gsm8k/qcs/test.parquet"}
+TRAIN_FILE=${TRAIN_FILE:-"/home/z00804445/data/gsm8k/train.parquet"}
+TEST_FILE=${TEST_FILE:-"/home/z00804445/data/gsm8k/test.parquet"}
 
 # Data Configuration
 max_prompt_length=1024
