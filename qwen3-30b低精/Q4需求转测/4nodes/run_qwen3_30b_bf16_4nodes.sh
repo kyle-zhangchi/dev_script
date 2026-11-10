@@ -44,10 +44,10 @@ train_pp=1
 train_cp=4
 
 # vLLM Configuration
-gen_tp=2  # 改成1
+gen_tp=4
 gen_dp=1
 gen_ep=1
-gpu_memory_utilization=0.6
+gpu_memory_utilization=0.5
 max_model_len=$((max_prompt_length + max_response_length))
 max_num_batched_tokens=$(((max_prompt_length + max_response_length) * 1))
 
@@ -131,25 +131,14 @@ ACTOR_CONFIG=(
     +actor_rollout_ref.actor.megatron.override_transformer_config.moe_grouped_gemm=True
     +actor_rollout_ref.actor.megatron.override_transformer_config.tensor_model_parallel_size=${train_tp}
     actor_rollout_ref.actor.megatron.use_mbridge=True
-    actor_rollout_ref.actor.megatron.vanilla_mbridge=True
     +actor_rollout_ref.actor.megatron.override_transformer_config.hccl_op_mode=\"tp:6,pp:2,tp_dp:2,cp:2,ep:6,tp_ep_mp:2,dp:2,tp_cp:2,dp_cp:2,default_group:2\"
     +actor_rollout_ref.actor.megatron.override_transformer_config.recompute_method=uniform
     +actor_rollout_ref.actor.megatron.override_transformer_config.recompute_granularity=full
-    +actor_rollout_ref.actor.megatron.override_transformer_config.recompute_num_layers=1 
-    # 低精参数
-    +actor_rollout_ref.actor.megatron.override_transformer_config.transformer_impl=transformer_engine
-    # +actor_rollout_ref.actor.megatron.override_transformer_config.fp8=e4m3
-    # +actor_rollout_ref.actor.megatron.override_transformer_config.fp8_format=e4m3
-    # +actor_rollout_ref.actor.megatron.override_transformer_config.fp8_recipe=mxfp8
-    # # +actor_rollout_ref.actor.megatron.override_transformer_config.te_gmm_mode=performance
-    # +actor_rollout_ref.actor.megatron.override_transformer_config.fp8_reuse_quantized_weight=True
-    # fix_router
-    # +actor_rollout_ref.actor.megatron.override_transformer_config.fix_router=True
-    # 开启router_replay
-    # actor_rollout_ref.actor.router_replay.mode="R3"
+    +actor_rollout_ref.actor.megatron.override_transformer_config.recompute_num_layers=1
     actor_rollout_ref.actor.entropy_from_logits_with_chunking=True
     actor_rollout_ref.actor.entropy_from_logits_chunk_size=2048
-    # actor_rollout_ref.actor.entropy_checkpointing=True
+    # 低精参数
+    +actor_rollout_ref.actor.megatron.override_transformer_config.transformer_impl=transformer_engine
 )
 
 # Reference Model Configuration
@@ -168,7 +157,6 @@ REF_CONFIG=(
     actor_rollout_ref.ref.megatron.use_dist_checkpointing=False
     actor_rollout_ref.ref.entropy_from_logits_with_chunking=True
     actor_rollout_ref.ref.entropy_from_logits_chunk_size=2048
-    # actor_rollout_ref.ref.entropy_checkpointing=True
 )
 
 # Rollout Configuration
@@ -196,18 +184,12 @@ ROLLOUT_CONFIG=(
     actor_rollout_ref.rollout.val_kwargs.top_p=1.0
     actor_rollout_ref.rollout.val_kwargs.top_k=-1
     actor_rollout_ref.rollout.val_kwargs.temperature=1.0
-    # +actor_rollout_ref.rollout.engine_kwargs.vllm.compilation_config.cudagraph_capture_sizes="[1,2,4,8,16,24,32,48,64,128,192,256,320,384,448,512]"
     +actor_rollout_ref.rollout.engine_kwargs.vllm.compilation_config.cudagraph_mode="FULL_DECODE_ONLY"
     actor_rollout_ref.rollout.ignore_eos=True
     ++actor_rollout_ref.rollout.engine_kwargs.vllm.additional_config.enable_cpu_binding=True
+    ++actor_rollout_ref.rollout.engine_kwargs.vllm.additional_config.weight_nz_mode=0
     ++actor_rollout_ref.rollout.engine_kwargs.vllm.async_scheduling=True
     # actor_rollout_ref.rollout.quantization=ascend
-    # # 问题快速定位
-    # +actor_rollout_ref.rollout.skip_rollout=True
-    # +actor_rollout_ref.rollout.skip_dump_dir="/home/q00887491/projects/A5/verl/logs/skip_dump_dir"
-    # actor_rollout_ref.rollout.enable_rollout_routing_replay=True
-    # actor_rollout_ref.rollout.calculate_log_probs=True
-    # actor_rollout_ref.rollout.checkpoint_engine.overlap_bucket_processing=True
 )
 
 # Trainer Configuration
@@ -219,6 +201,7 @@ TRAINER_CONFIG=(
     trainer.n_gpus_per_node="${NPUS_PER_NODE}"
     trainer.device='npu'
     trainer.total_epochs=15
+    trainer.total_training_steps=15
     trainer.val_before_train=False
     trainer.val_only=False
     trainer.test_freq=-1

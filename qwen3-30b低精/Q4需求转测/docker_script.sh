@@ -1,11 +1,11 @@
-docker load -i /mnt/share/l00937907/docker/exports/verl-a5-main-20261102-113933/verl-a5_lxr.tar
+docker load -i /mnt/share/z00804445/tasks/verl_q4_test/verl-latest-vllm-950-ubuntu-1109.tar
 
 
 docker run -dit \
     --ipc=host \
     --net=host \
     --pid=host \
-    --name 'kyle_verl_mxfp8' \
+    --name 'kyle_verl_q4_test' \
     --privileged \
     --shm-size 720g \
     --device=/dev/hisi_hdc \
@@ -44,9 +44,9 @@ docker run -dit \
     -v /home/:/home/ \
     -v /data/:/data/ \
     -v /mnt:/mnt \
-    verl-a5:lxr \
+    quay.io/ascend/verl:latest-vllm-950-ubuntu-1109 \
     /bin/bash
 
-docker exec -it kyle_verl_mxfp8 /bin/bash
+docker exec -it kyle_verl_q4_test /bin/bash
 
 apt-get update && apt-get install net-tools
