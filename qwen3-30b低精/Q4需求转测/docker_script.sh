@@ -1,3 +1,9 @@
+
+cd /mnt/share/z00804445/tasks/verl_q4_test/verl
+git checkout 07ba1a854e57356ccf1c9d604898607a88e3da3e
+git apply --whitespace=nowarn /mnt/share/z00804445/tasks/verl_q4_test/patch/verl.patch
+
+
 docker load -i /mnt/share/z00804445/tasks/verl_q4_test/verl-latest-vllm-950-ubuntu-1109.tar
 
 
@@ -50,3 +56,12 @@ docker run -dit \
 docker exec -it kyle_verl_q4_test /bin/bash
 
 apt-get update && apt-get install net-tools
+
+cd /vllm-ascend
+git checkout 59ebc4384b340065127e9b1e1bb73a257c51895e
+git apply --whitespace=nowarn /mnt/share/z00804445/tasks/verl_q4_test/patch/vllm-ascend.patch
+
+
+cd /mnt/share/z00804445/tasks/verl_q4_test/verl
+
+
