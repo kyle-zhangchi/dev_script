@@ -6,60 +6,59 @@ project_name='GRPO-Qwen3-235B-A22B-BASE-MATH'
 exp_name='GRPO-Qwen3-235B-A22B-BASE-Megatron-vLLM'
 
 # Node Info
-NNODES=16
+NNODES=1
 NPUS_PER_NODE=${NPUS_PER_NODE:-8}
 
 # Model Weights Paths
-# MODEL_PATH=/mnt/share/weight/qwen3-235b-a22b/Qwen3-235B-A22B
-MODEL_PATH=/mnt/share/z00804445/projects/0611/verl/a5/235b_ckpt/h8-MXFP8
-MCORE_MODEL_PATH=Qwen/Qwen3-235B-A22B-Base-dist
+MODEL_PATH=/mnt/weight/Qwen3-235B-A22B-MXFP8
+MCORE_MODEL_PATH=Qwen/Qwen3-30B-A3B-Base-dist
 RAY_DATA_HOME=${RAY_DATA_HOME:-"${HOME}/verl"}
 CKPTS_DIR=${CKPTS_DIR:-"${RAY_DATA_HOME}/ckpts/${project_name}/${exp_name}"}
 
 # File System Paths
-TRAIN_FILE=${TRAIN_FILE:-"/mnt/share/f00939134/data/dapo-math-17k.parquet"}
-TEST_FILE=${TEST_FILE:-"/mnt/share/f00939134/data/aime-2024.parquet"}
+TRAIN_FILE=${TRAIN_FILE:-"/mnt/share/s00956100/018/data/dapo-math-17k/dapo-math-17k.parquet"}
+TEST_FILE=${TEST_FILE:-"/mnt/share/s00956100/018/data/aime-2024/aime-2024.parquet"}
+
 
 # Data Configuration
-max_prompt_length=2048
-max_response_length=6144
+max_prompt_length=1024
+max_response_length=8192
 
 # Training Batch Configuration
-train_prompt_bsz=128
-train_prompt_mini_bsz=128
-n_resp_per_prompt=16
+train_prompt_bsz=64 
+train_prompt_mini_bsz=16
+n_resp_per_prompt=8
 
 # Algorithm Configuration
 adv_estimator=grpo
 use_kl_in_reward=False
 kl_coef=0.0
-use_kl_loss=True
-kl_loss_coef=0.001
+use_kl_loss=False
+kl_loss_coef=0.000
 
 # Performance and Memory Management Configuration
 all_offload=True
 use_dynamic_bsz=True
 actor_ppo_max_token_len=$(((max_prompt_length + max_response_length) * 1))
-infer_ppo_max_token_len=$(((max_prompt_length + max_response_length) * 1))
+infer_ppo_max_token_len=$(((max_prompt_length + max_response_length) * 8))
 optimizer_offload_fraction=1
 
 # Megatron Configuration
-train_tp=4
-train_ep=8 #8
+train_tp=8
+train_ep=8
 train_etp=1
-train_pp=8
+train_pp=1
 train_cp=1
-train_vpp=null
 
 # vLLM Configuration
-gen_tp=8 #4
-gen_dp=4 #16
-gen_ep=32 #64
+gen_tp=8
+gen_dp=2
+gen_ep=16
 gpu_memory_utilization=0.7
 max_model_len=$((max_prompt_length + max_response_length))
 max_num_batched_tokens=$(((max_prompt_length + max_response_length) * 1))
-# max_num_batched_tokens=1024
-max_num_seqs=1024
+
+
 
 # Data Configuration
 DATA_CONFIG=(
@@ -102,57 +101,46 @@ ACTOR_CONFIG=(
     actor_rollout_ref.actor.ppo_mini_batch_size=${train_prompt_mini_bsz}
     actor_rollout_ref.actor.kl_loss_type=low_var_kl
     actor_rollout_ref.actor.optim.lr=1e-6
-    # +actor_rollout_ref.actor.optim.override_optimizer_config.optimizer_offload_fraction=${optimizer_offload_fraction}
-    # +actor_rollout_ref.actor.optim.override_optimizer_config.use_precision_aware_optimizer=True
-    # +actor_rollout_ref.actor.optim.override_optimizer_config.optimizer_cpu_offload=True
-    actor_rollout_ref.actor.megatron.use_mbridge=True
     actor_rollout_ref.actor.megatron.tensor_model_parallel_size=${train_tp}
     actor_rollout_ref.actor.megatron.pipeline_model_parallel_size=${train_pp}
-    actor_rollout_ref.actor.megatron.virtual_pipeline_model_parallel_size=${train_vpp}
     actor_rollout_ref.actor.megatron.context_parallel_size=${train_cp}
     actor_rollout_ref.actor.megatron.expert_model_parallel_size=${train_ep}
     actor_rollout_ref.actor.megatron.expert_tensor_parallel_size=${train_etp}
     actor_rollout_ref.actor.megatron.param_offload=${all_offload}
     actor_rollout_ref.actor.megatron.optimizer_offload=${all_offload}
-    actor_rollout_ref.actor.megatron.grad_offload=${all_offload}
+    +actor_rollout_ref.actor.megatron.override_transformer_config.grad_offload=${all_offload}
     actor_rollout_ref.actor.megatron.dist_checkpointing_path=${MCORE_MODEL_PATH}
     actor_rollout_ref.actor.megatron.use_dist_checkpointing=False
-
-    +actor_rollout_ref.actor.megatron.override_transformer_config.recompute_method=uniform
-    +actor_rollout_ref.actor.megatron.override_transformer_config.recompute_granularity=full
-    +actor_rollout_ref.actor.megatron.override_transformer_config.recompute_num_layers=1
-    +actor_rollout_ref.actor.megatron.override_transformer_config.num_layers_in_first_pipeline_stage=11
-    +actor_rollout_ref.actor.megatron.override_transformer_config.num_layers_in_last_pipeline_stage=11
-    # 性能参数
     +actor_rollout_ref.actor.megatron.override_transformer_config.use_flash_attn=True
     +actor_rollout_ref.actor.megatron.override_transformer_config.use_fused_rmsnorm=True
     +actor_rollout_ref.actor.megatron.override_transformer_config.use_fused_swiglu=True
     +actor_rollout_ref.actor.megatron.override_transformer_config.apply_rope_fusion=True
     +actor_rollout_ref.actor.megatron.override_transformer_config.use_fused_rotary_pos_emb=True
     +actor_rollout_ref.actor.megatron.override_transformer_config.position_embedding_type=rope
-    +actor_rollout_ref.actor.megatron.override_transformer_config.moe_permute_fusion=True
-    # +actor_rollout_ref.actor.megatron.override_transformer_config.moe_fb_overlap=True
-    +actor_rollout_ref.actor.megatron.override_transformer_config.use_ascend_mc2=False
     +actor_rollout_ref.actor.megatron.override_transformer_config.sequence_parallel=True
     +actor_rollout_ref.actor.megatron.override_transformer_config.moe_router_dtype=fp32
     +actor_rollout_ref.actor.megatron.override_transformer_config.moe_token_dispatcher_type="alltoall"
     +actor_rollout_ref.actor.megatron.override_transformer_config.bias_activation_fusion=True
     +actor_rollout_ref.actor.megatron.override_transformer_config.bias_dropout_fusion=True
     +actor_rollout_ref.actor.megatron.override_transformer_config.gradient_accumulation_fusion=True
-    +actor_rollout_ref.actor.megatron.override_transformer_config.gemm_gradient_accumulation_fusion=True
     +actor_rollout_ref.actor.megatron.override_transformer_config.moe_grouped_gemm=True
     +actor_rollout_ref.actor.megatron.override_transformer_config.tensor_model_parallel_size=${train_tp}
-    # +actor_rollout_ref.actor.megatron.override_transformer_config.hccl_op_mode=\"tp:6,pp:2,tp_dp:2,cp:2,ep:6,tp_ep_mp:2,dp:2,tp_cp:2,dp_cp:2,default_group:2\"
-    +actor_rollout_ref.actor.megatron.override_transformer_config.hccl_op_mode=\"tp:2,pp:2,tp_dp:2,cp:2,ep:2,tp_ep_mp:2,dp:2,tp_cp:2,dp_cp:2,default_group:2\"
-    # 低精参数
+    actor_rollout_ref.actor.megatron.use_mbridge=True
+    +actor_rollout_ref.actor.megatron.override_transformer_config.hccl_op_mode=\"tp:6,pp:2,tp_dp:2,cp:2,ep:6,tp_ep_mp:2,dp:2,tp_cp:2,dp_cp:2,default_group:2\"
+    # +actor_rollout_ref.actor.megatron.override_transformer_config.recompute_method=uniform
+    +actor_rollout_ref.actor.megatron.override_transformer_config.recompute_granularity=selective
+    +actor_rollout_ref.actor.megatron.override_transformer_config.recompute_modules="['moe_act']"
+    # +actor_rollout_ref.actor.megatron.override_transformer_config.recompute_num_layers=1 
     +actor_rollout_ref.actor.megatron.override_transformer_config.transformer_impl=transformer_engine
+    # Low-precision parameters
     +actor_rollout_ref.actor.megatron.override_transformer_config.fp8=e4m3
-    +actor_rollout_ref.actor.megatron.override_transformer_config.fp8_format=e4m3
     +actor_rollout_ref.actor.megatron.override_transformer_config.fp8_recipe=mxfp8
-    +actor_rollout_ref.actor.megatron.override_transformer_config.te_gmm_mode=performance
-    +actor_rollout_ref.actor.megatron.override_transformer_config.fp8_reuse_quantized_weight=True
-    # fix_router
-    +actor_rollout_ref.actor.megatron.override_transformer_config.fix_router=True
+
+    # +actor_rollout_ref.actor.megatron.override_transformer_config.fp8_param=True
+    # +actor_rollout_ref.actor.megatron.override_ddp_config.fp8_param_gather=True
+    # +actor_rollout_ref.actor.megatron.override_ddp_config.reuse_grad_buf_for_mxfp8_param_ag=True
+    # +actor_rollout_ref.actor.optim.override_optimizer_config.fp8_recipe=mxfp8
+    # +actor_rollout_ref.actor.optim.override_optimizer_config.reuse_grad_buf_for_mxfp8_param_ag=True
 )
 
 # Reference Model Configuration
@@ -163,7 +151,6 @@ REF_CONFIG=(
     actor_rollout_ref.ref.log_prob_max_token_len_per_gpu=${infer_ppo_max_token_len}
     actor_rollout_ref.ref.megatron.tensor_model_parallel_size=${train_tp}
     actor_rollout_ref.ref.megatron.pipeline_model_parallel_size=${train_pp}
-    actor_rollout_ref.ref.megatron.virtual_pipeline_model_parallel_size=${train_vpp}
     actor_rollout_ref.ref.megatron.context_parallel_size=${train_cp}
     actor_rollout_ref.ref.megatron.expert_model_parallel_size=${train_ep}
     actor_rollout_ref.ref.megatron.expert_tensor_parallel_size=${train_etp}
@@ -179,11 +166,10 @@ ROLLOUT_CONFIG=(
     actor_rollout_ref.rollout.top_p=1.0
     actor_rollout_ref.rollout.top_k=-1
     actor_rollout_ref.rollout.temperature=1.0
-    actor_rollout_ref.rollout.log_prob_micro_batch_size_per_gpu=4
+    actor_rollout_ref.rollout.log_prob_micro_batch_size_per_gpu=1
     actor_rollout_ref.rollout.log_prob_use_dynamic_bsz=${use_dynamic_bsz}
     actor_rollout_ref.rollout.log_prob_max_token_len_per_gpu=${infer_ppo_max_token_len}
     actor_rollout_ref.rollout.gpu_memory_utilization=${gpu_memory_utilization}
-    actor_rollout_ref.rollout.max_num_seqs=${max_num_seqs}
     actor_rollout_ref.rollout.max_num_batched_tokens=${max_num_batched_tokens}
     actor_rollout_ref.rollout.max_model_len=${max_model_len}
     actor_rollout_ref.rollout.tensor_model_parallel_size=${gen_tp}
@@ -198,12 +184,12 @@ ROLLOUT_CONFIG=(
     actor_rollout_ref.rollout.val_kwargs.top_p=1.0
     actor_rollout_ref.rollout.val_kwargs.top_k=-1
     actor_rollout_ref.rollout.val_kwargs.temperature=1.0
-    +actor_rollout_ref.rollout.engine_kwargs.vllm.compilation_config.cudagraph_capture_sizes="[1,2,4,8,16,24,32,48,64,128,192,256,320,384,448,512]"
     +actor_rollout_ref.rollout.engine_kwargs.vllm.compilation_config.cudagraph_mode="FULL_DECODE_ONLY"
-    actor_rollout_ref.rollout.ignore_eos=True
+    actor_rollout_ref.rollout.ignore_eos=False
     ++actor_rollout_ref.rollout.engine_kwargs.vllm.additional_config.enable_cpu_binding=True
     ++actor_rollout_ref.rollout.engine_kwargs.vllm.async_scheduling=True
-    actor_rollout_ref.rollout.quantization=ascend
+    # Low-precision parameters
+    ++actor_rollout_ref.rollout.engine_kwargs.vllm.quantization=ascend
 )
 
 # Trainer Configuration
@@ -216,33 +202,31 @@ TRAINER_CONFIG=(
     trainer.device='npu'
     trainer.total_epochs=15
     trainer.val_before_train=False
+    trainer.val_only=False
     trainer.test_freq=-1
     trainer.save_freq=-1
     trainer.default_local_dir="${CKPTS_DIR}"
 )
-PROF_CONFIG=(
+
+PROFILE_CONFIG=(
     global_profiler.tool=npu
-    global_profiler.steps="[2]"
-    global_profiler.save_path=$MY_PROFILING_PATH
-
-    actor_rollout_ref.actor.profiler.enable=False
+    global_profiler.steps="[2]" # 采集步数
+    global_profiler.save_path=${JOB_LOG_DIR_CURR}/profile/${CURRENT_IP}
+    actor_rollout_ref.actor.profiler.enable=True
     actor_rollout_ref.actor.profiler.all_ranks=False
-    actor_rollout_ref.actor.profiler.ranks=[0]
-    actor_rollout_ref.actor.profiler.tool_config.npu.discrete=True
-    actor_rollout_ref.actor.profiler.tool_config.npu.contents=['npu','cpu']
+    actor_rollout_ref.actor.profiler.ranks="[0]" # 只采集rank0
+    actor_rollout_ref.actor.profiler.tool_config.npu.discrete=True # 推荐使用离散模式，各阶段数据分开存储
+    actor_rollout_ref.actor.profiler.tool_config.npu.contents="['npu','cpu']" # 控制采集列表，默认cpu、npu，可配置memory、shapes、module等
     actor_rollout_ref.actor.profiler.tool_config.npu.level=level1
-    actor_rollout_ref.actor.profiler.tool_config.npu.analysis=False
+    actor_rollout_ref.actor.profiler.tool_config.npu.analysis=False # 禁用自动数据解析
 
-
-    actor_rollout_ref.rollout.profiler.enable=False
+    actor_rollout_ref.rollout.profiler.enable=True
     actor_rollout_ref.rollout.profiler.all_ranks=False
-    actor_rollout_ref.rollout.profiler.ranks=[0]
-    actor_rollout_ref.rollout.profiler.tool_config.npu.discrete=True
-    actor_rollout_ref.rollout.profiler.tool_config.npu.contents=['npu','cpu']
-    actor_rollout_ref.rollout.profiler.tool_config.npu.level=level1
-    actor_rollout_ref.rollout.profiler.tool_config.npu.analysis=False
-    # +actor_rollout_ref.rollout.profiler.tool_config.npu.profile_token_start=30
-    # +actor_rollout_ref.rollout.profiler.tool_config.npu.profile_token_end=60
+    actor_rollout_ref.rollout.profiler.ranks="[0]" # 只采集rank0
+    # 可选：轻量化采集推理数据，按 response token 区间采集；不设置 start/stop 时采集整个 rollout 阶段
+    actor_rollout_ref.rollout.profiler.tool_config.npu.profile_token_start=30
+    actor_rollout_ref.rollout.profiler.tool_config.npu.profile_token_end=60
+    # ref follow actor settings
 )
 
 # Main GRPO Training Command
@@ -256,4 +240,4 @@ python3 -m verl.trainer.main_ppo \
     "${ROLLOUT_CONFIG[@]}" \
     "${ALGORITHM_CONFIG[@]}" \
     "${TRAINER_CONFIG[@]}" \
-    "${PROF_CONFIG[@]}" 2>&1  | tee $JOB_LOG_DIR_CURR/run_$(date +%Y%m%d_%H%M).log
+    "${PROFILE_CONFIG[@]}" 2>&1 | tee "$JOB_LOG_DIR_CURR/run_$(date +%Y%m%d_%H%M).log"
