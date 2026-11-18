@@ -42,13 +42,13 @@ NPUS_PER_NODE=8
 export ASCEND_RT_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 
 #修改为对应主节点IP
-MASTER_ADDR="177.22.21.1"
+MASTER_ADDR="172.27.4.102"
 
 #修改为当前节点的通信网卡
 export HCCL_HOST_SOCKET_PORT_RANGE=auto
 export HCCL_NPU_SOCKET_PORT_RANGE=auto
 # SOCKET_IFNAME=$(ifconfig | awk '/^[a-z0-9]+:/ {gsub(/:$/, "", $1); interface=$1} /inet 141\.6/ {print interface}')
-SOCKET_IFNAME="enp35s0f2"
+SOCKET_IFNAME="data0.172"
 export HCCL_SOCKET_IFNAME=$SOCKET_IFNAME
 export GLOO_SOCKET_IFNAME=$SOCKET_IFNAME
 export HCCL_CONNECT_TIMEOUT=3000
@@ -65,7 +65,7 @@ echo $CURRENT_IP
 
 #################### Log 目录配置 ###########################
 # * 确保 JOB_LOG_DIR 在共享盘下
-export JOB_LOG_DIR=/mnt/share/z00804445/tasks/verl_mindspeed_low_precision/verl/logs/4nodes
+export JOB_LOG_DIR=/mnt/share/z00804445/tasks/verl_q4_test/verl/logs/4nodes
 export JOB_LOG_DIR_CURR=${JOB_LOG_DIR}/$(date +"%Y%m%d_%H%M")
 export ASCEND_PROCESS_LOG_PATH=${JOB_LOG_DIR_CURR}/plog/${CURRENT_IP}
 
@@ -93,7 +93,7 @@ if [ "$MASTER_ADDR" = "$CURRENT_IP" ]; then
   mkdir -p $JOB_LOG_DIR_CURR
   cp "$(realpath "$0")" "${JOB_LOG_DIR_CURR}/."  # 拷贝当前文件
   cp $(dirname $0)/${DEFAULT_SH} "${JOB_LOG_DIR_CURR}/."
-  cp $(dirname $0)/mv_profiling_to_curr.sh "${JOB_LOG_DIR_CURR}/."
+#   cp $(dirname $0)/mv_profiling_to_curr.sh "${JOB_LOG_DIR_CURR}/."
 
   while true; do
       ray_status_output=$(ray status)
