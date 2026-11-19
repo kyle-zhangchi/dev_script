@@ -191,7 +191,7 @@ ROLLOUT_CONFIG=(
     ++actor_rollout_ref.rollout.engine_kwargs.vllm.additional_config.enable_cpu_binding=True
     ++actor_rollout_ref.rollout.engine_kwargs.vllm.additional_config.weight_nz_mode=0
     ++actor_rollout_ref.rollout.engine_kwargs.vllm.async_scheduling=True
-    actor_rollout_ref.rollout.quantization=ascend
+    ++actor_rollout_ref.rollout.engine_kwargs.vllm.quantization=ascend
 )
 
 # Trainer Configuration
@@ -203,7 +203,7 @@ TRAINER_CONFIG=(
     trainer.n_gpus_per_node="${NPUS_PER_NODE}"
     trainer.device='npu'
     trainer.total_epochs=15
-    trainer.total_training_steps=15
+    # trainer.total_training_steps=15
     trainer.val_before_train=False
     trainer.val_only=False
     trainer.test_freq=-1
